@@ -1,0 +1,17 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Imagens de entrevistas e PDFs publicados: leitura pública, escrita só de administradores
+    match /public/interviews/{id}/{file} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.auth.token.admin == true && request.resource.size < 5 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && request.auth.token.admin == true;
+    }
+    match /public/documents/{id}/{file} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.auth.token.admin == true && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType == 'application/pdf';
+      allow delete: if request.auth != null && request.auth.token.admin == true;
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

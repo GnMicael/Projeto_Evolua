@@ -1,0 +1,22 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+@layer base{html{scroll-behavior:smooth}body{@apply bg-white text-slate-900 antialiased}}
+@layer components{
+ .btn{@apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 disabled:cursor-not-allowed disabled:opacity-50}
+ .btn-p{@apply btn bg-brand text-white hover:bg-blue-800}
+ .btn-y{@apply btn bg-sun text-yellow-950 hover:bg-yellow-400}
+ .btn-o{@apply btn border border-slate-300 bg-white text-navy hover:border-brand hover:text-brand}
+ .btn-s{@apply px-3 py-1.5 text-xs}
+ .card{@apply rounded-2xl border border-slate-200 bg-white p-6}
+ .card-i{@apply card cursor-pointer text-left transition hover:border-brand/50 hover:shadow-md}
+ .eyebrow{@apply text-xs font-bold uppercase tracking-widest text-brand}
+ .field{@apply mb-4 mt-1 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/60}
+ .ico{@apply grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-sky text-brand}
+ .flip{perspective:900px;height:11rem;cursor:pointer;outline:none}
+ .flip .in{position:relative;height:100%;width:100%;transition:transform .6s cubic-bezier(.4,.2,.2,1);transform-style:preserve-3d}
+ .flip:focus-visible .in{transform:rotateY(180deg)}
+ .face{backface-visibility:hidden;-webkit-backface-visibility:hidden;@apply absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-4 text-center}
+ .face.bk{transform:rotateY(180deg);@apply border-0 bg-navy text-sm text-blue-50}
+}
+@media (hover:hover){.flip:hover .in{transform:rotateY(180deg)}}
+@media (hover:none){.flip.on .in{transform:rotateY(180deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

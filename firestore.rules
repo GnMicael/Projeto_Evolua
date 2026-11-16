@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signed() { return request.auth != null; }
+    function isAdmin() { return signed() && request.auth.token.admin == true; }
+    function schoolApproved() { return signed() && exists(/databases/$(db)/documents/schools/$(request.auth.uid)) && get(/databases/$(db)/documents/schools/$(request.auth.uid)).data.status == 'approved'; }
+    function nonNeg(v) { return v is number && v >= 0; }
+    function validVals(v) { return v.total is number && v.total > 0 && nonNeg(v.impact) && nonNeg(v.cont) && nonNeg(v.uniB) && nonNeg(v.uniA) && v.impact <= v.total && v.cont <= v.total && v.uniB <= v.total && v.uniA <= v.total; }
+
+    // Conteúdo público (somente leitura para visitantes)
+    match /siteContent/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /publicStats/{id} { allow read: if true; allow write: if false; }          // escrito só por Cloud Functions
+    match /aggregatedResults/{id} { allow read: if true; allow write: if false; }    // idem: somente agregados com >= 5 envios
+    match /interviews/{id} { allow read: if resource.data.publicationStatus == 'published' || isAdmin(); allow write: if isAdmin(); }
+    match /documents/{id} { allow read: if resource.data.publicationStatus == 'published' || isAdmin(); allow write: if isAdmin(); }
+
+    // Pesquisas: escolas aprovadas leem apenas as publicadas
+    match /surveys/{id} { allow read: if isAdmin() || (schoolApproved() && resource.data.status == 'published'); allow write: if isAdmin(); }
+
+    // Escolas: o cadastro nasce 'pending'; só o administrador altera o status
+    match /schools/{id} {
+      allow get: if isAdmin() || (signed() && request.auth.uid == id);
+      allow list: if isAdmin();
+      allow create: if signed() && request.auth.uid == id && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['name', 'responsibleName', 'institutionalEmail', 'status', 'createdAt']);
+      allow update: if isAdmin();
+    }
+
+    // Envios: id = {surveyId}_{schoolId}. Escola só mexe nos próprios, em rascunho/correção, e nunca nos campos de revisão
+    match /submissions/{id} {
+      allow get: if isAdmin() || (signed() && id.matches('.*_' + request.auth.uid));
+      allow list: if isAdmin() || (signed() && resource.data.schoolId == request.auth.uid);
+      allow create: if schoolApproved() && request.resource.data.schoolId == request.auth.uid && id.matches('.*_' + request.auth.uid)
+        && request.resource.data.status in ['draft', 'pending'] && !('reviewedBy' in request.resource.data)
+        && (request.resource.data.status != 'pending' || validVals(request.resource.data.vals));
+      allow update: if isAdmin() || (schoolApproved() && resource.data.schoolId == request.auth.uid
+        && resource.data.status in ['draft', 'correction'] && request.resource.data.status in ['draft', 'pending']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vals', 'extra', 'questionsSnapshot', 'surveyVersion', 'status', 'updatedAt', 'submittedAt', 'surveyTitle', 'period', 'schoolName'])
+        && (request.resource.data.status != 'pending' || validVals(request.resource.data.vals)));
+    }
+
+    match /adminProfiles/{id} { allow read: if isAdmin(); allow write: if false; }
+    match /auditLogs/{id} { allow read: if isAdmin(); allow write: if false; }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

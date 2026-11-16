@@ -1,0 +1,4 @@
+import React from 'react'; import ReactDOM from 'react-dom/client'; import { BrowserRouter } from 'react-router-dom'
+import App from './App'; import { AuthProvider } from './contexts/AuthContext'; import { configured } from './lib/firebase'; import './index.css'
+const Config = () => <div className="mx-auto max-w-2xl p-10 font-sans"><h1 className="text-2xl font-bold text-[#0b2559]">Configure o Firebase</h1><p className="mt-3 text-slate-600">Copie <code>.env.example</code> para <code>.env</code>, preencha as chaves do seu app Web do Firebase e reinicie com <code>npm run dev</code>. Instruções completas no README.</p></div>
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode>{configured ? <BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter> : <Config />}</React.StrictMode>)
