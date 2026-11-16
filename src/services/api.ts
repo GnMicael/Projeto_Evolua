@@ -1,17 +1,25 @@
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth'
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth'
 import { collection, doc, setDoc, updateDoc, deleteDoc, getDoc, serverTimestamp, arrayUnion } from 'firebase/firestore'
 import { ref as sref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; import { httpsCallable } from 'firebase/functions'
 import { auth, db, storage, functions } from '../lib/firebase'; import { resizeImage, safeName } from '../lib/files'
 const uidOf = () => auth.currentUser?.uid
-/* Autenticação */
-export const signIn = (email: string, password: string) => signInWithEmailAndPassword(auth, email, password)
-export const logout = () => signOut(auth)
-export const resetPassword = (email: string) => sendPasswordResetEmail(auth, email)
-export async function registerSchool(f: { name: string; responsibleName: string; email: string; password: string }) {
-  const { user } = await createUserWithEmailAndPassword(auth, f.email, f.password)
-  await setDoc(doc(db, 'schools', user.uid), { name: f.name, responsibleName: f.responsibleName, institutionalEmail: f.email, status: 'pending', createdAt: serverTimestamp() })
-  sendEmailVerification(user).catch(() => {})
+/* Autenticação: participantes usam somente Google; administradores continuam protegidos por custom claim no Firebase. */
+export async function signInWithGoogle() {
+  const provider = new GoogleAuthProvider()
+  provider.setCustomParameters({ prompt: 'select_account' })
+  const result = await signInWithPopup(auth, provider)
+  const token = await result.user.getIdTokenResult(true)
+  if (!token.claims.admin) {
+    const schoolRef = doc(db, 'schools', result.user.uid)
+    const school = await getDoc(schoolRef)
+    if (!school.exists()) {
+      const displayName = result.user.displayName || result.user.email?.split('@')[0] || 'Nova escola'
+      await setDoc(schoolRef, { name: displayName, responsibleName: result.user.displayName || displayName, institutionalEmail: result.user.email || '', status: 'pending', createdAt: serverTimestamp() })
+    }
+  }
+  return result
 }
+export const logout = () => signOut(auth)
 /* Escolas (admin) */
 export const setSchoolStatus = (id: string, status: string) => updateDoc(doc(db, 'schools', id), { status, statusBy: uidOf(), statusAt: serverTimestamp() })
 /* Pesquisas */

@@ -23,10 +23,11 @@ export const onSchoolWrite = onDocumentWritten('schools/{id}', async ev => {
   if (b?.status !== a?.status) { const n = (await db.collection('schools').where('status', '==', 'approved').count().get()).data().count; await db.doc('publicStats/summary').set({ schools: n, updatedAt: FieldValue.serverTimestamp() }); if (a?.statusBy) await audit(a.statusBy, 'school:' + a.status, 'schools', ev.params.id) }
 })
 // Gestão de administradores (claims só podem ser definidas pelo Admin SDK)
-export const createAdmin = onCall(async r => { needAdmin(r); const { name, email, password } = r.data || {}
-  if (!name || !email || !password || String(password).length < 8) throw new HttpsError('invalid-argument', 'Informe nome, e-mail e senha (mínimo de 8 caracteres).')
-  const u = await getAuth().createUser({ email, password, displayName: name }); await getAuth().setCustomUserClaims(u.uid, { admin: true })
-  await db.doc(`adminProfiles/${u.uid}`).set({ name, email, createdAt: FieldValue.serverTimestamp(), createdBy: r.auth!.uid }); await audit(r.auth!.uid, 'admin:create', 'adminProfiles', u.uid); return { uid: u.uid } })
+export const createAdmin = onCall(async r => { needAdmin(r); const { name, email } = r.data || {}
+  if (!email) throw new HttpsError('invalid-argument', 'Informe o e-mail de uma conta que já entrou com Google.')
+  let u; try { u = await getAuth().getUserByEmail(email) } catch { throw new HttpsError('not-found', 'A conta precisa entrar com Google uma vez antes de ser promovida.') }
+  await getAuth().setCustomUserClaims(u.uid, { ...(u.customClaims || {}), admin: true })
+  await db.doc(`adminProfiles/${u.uid}`).set({ uid: u.uid, name: name || u.displayName || email, email, role: 'admin', updatedAt: FieldValue.serverTimestamp(), createdBy: r.auth!.uid }, { merge: true }); await audit(r.auth!.uid, 'admin:create', 'adminProfiles', u.uid); return { uid: u.uid } })
 export const removeAdmin = onCall(async r => { needAdmin(r); const { uid } = r.data || {}
   if (!uid || uid === r.auth!.uid) throw new HttpsError('failed-precondition', 'Não é possível remover a própria conta.')
   await getAuth().deleteUser(uid); await db.doc(`adminProfiles/${uid}`).delete(); await audit(r.auth!.uid, 'admin:remove', 'adminProfiles', uid); return { ok: true } })

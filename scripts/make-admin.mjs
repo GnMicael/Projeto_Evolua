@@ -1,12 +1,23 @@
-// Cria (ou promove) o primeiro administrador. Uso:
-//   GOOGLE_APPLICATION_CREDENTIALS=./chave-servico.json npm run make-admin -- email@exemplo.com "SenhaForte123" "Nome"
+// Promove uma conta Google existente a administrador. Uso:
+//   GOOGLE_APPLICATION_CREDENTIALS=./chave-servico.json npm run make-admin -- email@gmail.com
+// A conta precisa ter feito login com Google pelo menos uma vez.
 // Nunca coloque a chave de serviço no frontend nem no repositório.
-import { initializeApp, applicationDefault } from 'firebase-admin/app'; import { getAuth } from 'firebase-admin/auth'; import { getFirestore, FieldValue } from 'firebase-admin/firestore'
-const [email, password, name = 'Administrador'] = process.argv.slice(2)
-if (!email || !password) { console.error('Uso: npm run make-admin -- <email> <senha> [nome]'); process.exit(1) }
+import { initializeApp, applicationDefault, getApps } from 'firebase-admin/app'
+import { getAuth } from 'firebase-admin/auth'
+import { getFirestore, FieldValue } from 'firebase-admin/firestore'
+
+const email = String(process.argv[2] || process.env.ADMIN_EMAIL || '').trim().toLowerCase()
+if (!email) { console.error('Uso: npm run make-admin -- email@gmail.com'); process.exit(1) }
 initializeApp({ credential: applicationDefault(), projectId: process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID })
-const auth = getAuth(); let user
-try { user = await auth.getUserByEmail(email) } catch { user = await auth.createUser({ email, password, displayName: name }) }
-await auth.setCustomUserClaims(user.uid, { admin: true })
-await getFirestore().doc(`adminProfiles/${user.uid}`).set({ name, email, createdAt: FieldValue.serverTimestamp() }, { merge: true })
-console.log('Administrador pronto:', email, user.uid)
+const auth = getAuth(); const db = getFirestore()
+try {
+  const user = await auth.getUserByEmail(email)
+  await auth.setCustomUserClaims(user.uid, { ...(user.customClaims || {}), admin: true })
+  await db.doc(`adminProfiles/${user.uid}`).set({ uid: user.uid, name: user.displayName || email, email, role: 'admin', updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+  console.log('Administrador definido:', email)
+  console.log('Peça ao usuário para sair e entrar novamente com o Google para atualizar o token.')
+} catch (error) {
+  if (error?.code === 'auth/user-not-found') console.error(`A conta ${email} ainda não existe. Faça login com Google uma vez e execute novamente.`)
+  else console.error(error)
+  process.exit(1)
+}

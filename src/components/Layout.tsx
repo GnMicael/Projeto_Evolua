@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'; import { useState, useEffect } from 'react'; import { Menu, X, School, ShieldCheck, ChevronDown, UserRound, LayoutDashboard, LogOut } from 'lucide-react'; import { useAuth } from '../contexts/AuthContext'; import { logout } from '../services/api'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'; import { useState, useEffect } from 'react'; import { Menu, X, School, ChevronDown, UserRound, LayoutDashboard, LogOut } from 'lucide-react'; import { useAuth } from '../contexts/AuthContext'; import { logout } from '../services/api'
 const items = [['/', 'Início'], ['/projeto', 'O projeto'], ['/pesquisa', 'Pesquisa'], ['/resultados', 'Resultados'], ['/entrevistas', 'Entrevistas'], ['/documentos', 'Documentos']]
 const mi = 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-navy hover:bg-sky'
 function AccountMenu() {
@@ -10,7 +10,7 @@ function AccountMenu() {
     {ses ? <><UserRound size={16} /><span className="max-w-[140px] truncate">{name}</span></> : 'Entrar'}<ChevronDown size={16} /></button>
     {o && <div role="menu" className="absolute right-0 top-full z-40 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
       {ses ? <><Link role="menuitem" to={adm ? '/gestao' : '/escolas/painel'} className={mi}><LayoutDashboard size={18} className="text-brand" />Minha área</Link><button role="menuitem" className={mi + ' w-full'} onClick={() => { logout().then(() => nav('/')) }}><LogOut size={18} className="text-brand" />Sair</button></>
-        : <><Link role="menuitem" to="/escolas" className={mi}><School size={18} className="text-brand" /><span>Login institucional<small className="block font-normal text-slate-500">Escolas participantes</small></span></Link><Link role="menuitem" to="/gestao/login" className={mi}><ShieldCheck size={18} className="text-brand" /><span>Login administrativo<small className="block font-normal text-slate-500">Equipe Evolua</small></span></Link></>}</div>}</div>)
+        : <Link role="menuitem" to="/escolas" className={mi}><School size={18} className="text-brand" /><span>Entrar com Google<small className="block font-normal text-slate-500">Escolas participantes</small></span></Link>}</div>}</div>)
 }
 export default function Layout() {
   const [open, setOpen] = useState(false); const a = useAuth(); const ses = a.user && a.role !== 'visitor' ? a : null
@@ -24,5 +24,5 @@ export default function Layout() {
     <Outlet />
     <footer className="bg-[#071a40] py-12 text-sm text-blue-200"><div className="mx-auto grid max-w-6xl gap-8 px-6 sm:grid-cols-4"><div className="sm:col-span-2"><b className="text-lg text-white">Evolua</b><p className="mt-2 max-w-sm">Pesquisa sobre os caminhos que a ciência abre para os projetos de vida de estudantes e ex-alunos das escolas estaduais.</p></div>
       <div className="flex flex-col gap-1"><b className="text-white">Navegação</b><Link to="/projeto">O projeto</Link><Link to="/resultados">Resultados</Link><Link to="/documentos">Biblioteca de documentos</Link></div>
-      <div className="flex flex-col gap-1"><b className="text-white">Acesso</b>{ses ? <Link to={a.role === 'admin' ? '/gestao' : '/escolas/painel'}>Minha área</Link> : <><Link to="/escolas">Área das escolas</Link><Link to="/gestao/login">Área administrativa</Link></>}<a href="https://www.instagram.com/evoluaimpactoprojetos">Instagram</a></div></div></footer></div>)
+      <div className="flex flex-col gap-1"><b className="text-white">Acesso</b>{ses ? <Link to={a.role === 'admin' ? '/gestao' : '/escolas/painel'}>Minha área</Link> : <Link to="/escolas">Área das escolas</Link>}<a href="https://www.instagram.com/evoluaimpactoprojetos">Instagram</a></div></div></footer></div>)
 }
