@@ -27,10 +27,10 @@ export async function saveSurvey(cur: any, f: any, questions: any[]) {
   if (cur) { const changed = JSON.stringify(cur.questions || []) !== JSON.stringify(questions); return updateDoc(doc(db, 'surveys', cur.id), { title: f.title, period: f.period, instructions: f.instructions, questions, version: (cur.version || 1) + (changed ? 1 : 0), updatedAt: serverTimestamp() }) }
   return setDoc(doc(collection(db, 'surveys')), { title: f.title, period: f.period, instructions: f.instructions, questions, version: 1, status: 'draft', createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
 }
-export const setStatus = (col: string, id: string, status: string) => updateDoc(doc(db, col, id), col === 'surveys' ? { status } : { publicationStatus: status, updatedAt: serverTimestamp() })
+export const setStatus = (col: string, id: string, status: string) => updateDoc(doc(db, col, id), col === 'surveys' ? { status, updatedAt: serverTimestamp() } : { publicationStatus: status, updatedAt: serverTimestamp() })
 /* Envios */
 export async function saveSubmission(school: any, survey: any, vals: any, extra: any, send: boolean) {
-  const r = doc(db, 'submissions', `${survey.id}_${school.id}`), snap = await getDoc(r).catch(() => null)
+  const r = doc(db, 'submissions', `${survey.id}_${school.id}`), snap = await getDoc(r)
   const d: any = { schoolId: school.id, schoolName: school.name, surveyId: survey.id, surveyTitle: survey.title, period: survey.period, surveyVersion: survey.version || 1, vals, extra, questionsSnapshot: (survey.questions || []).map((q: any) => ({ id: q.id, label: q.label })), status: send ? 'pending' : 'draft', updatedAt: serverTimestamp() }
   if (send) d.submittedAt = serverTimestamp()
   if (snap && snap.exists()) return updateDoc(r, d)
@@ -40,7 +40,7 @@ export const reviewSubmission = (id: string, status: string, notes: string) => u
 /* Entrevistas */
 export async function saveInterview(cur: any, f: any, file?: File) {
   const r = cur ? doc(db, 'interviews', cur.id) : doc(collection(db, 'interviews')); let image = cur?.image || '', imagePath = cur?.imagePath || ''
-  if (file) { const blob = await resizeImage(file), path = `public/interviews/${r.id}/${Date.now()}-${safeName(file.name)}.jpg`, s = sref(storage, path); await uploadBytes(s, blob, { contentType: 'image/jpeg' }); image = await getDownloadURL(s); if (imagePath) deleteObject(sref(storage, imagePath)).catch(() => {}); imagePath = path }
+  if (file) { const blob = await resizeImage(file), path = `public/interviews/${r.id}/${Date.now()}-${safeName(file.name.replace(/\.[^.]+$/, ''))}.jpg`, s = sref(storage, path); await uploadBytes(s, blob, { contentType: 'image/jpeg' }); image = await getDownloadURL(s); if (imagePath) deleteObject(sref(storage, imagePath)).catch(() => {}); imagePath = path }
   const d = { title: f.title, participant: f.participant, category: f.category, date: f.date, content: f.content, image, imagePath, publicationStatus: f.publish ? 'published' : 'draft', updatedAt: serverTimestamp() }
   return cur ? updateDoc(r, d) : setDoc(r, { ...d, consent: true, consentAt: serverTimestamp(), createdAt: serverTimestamp() })
 }
@@ -55,5 +55,5 @@ export async function saveDocument(cur: any, f: any, file?: File) {
 }
 /* Conteúdo e administradores */
 export const saveContent = (c: any) => setDoc(doc(db, 'siteContent', 'main'), { ...c, updatedAt: serverTimestamp() }, { merge: true })
-export const createAdmin = (d: { name: string; email: string; password: string }) => httpsCallable(functions, 'createAdmin')(d)
+export const createAdmin = (d: { name: string; email: string }) => httpsCallable(functions, 'createAdmin')(d)
 export const removeAdmin = (uid: string) => httpsCallable(functions, 'removeAdmin')({ uid })

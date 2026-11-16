@@ -12,7 +12,8 @@ export function useDocData<T = any>(ref: DocumentReference | null, deps: any[] =
   }, deps)
   return s
 }
-export const useContent = () => { const { data } = useDocData<any>(doc(db, 'siteContent', 'main'), []); return { ...DEFAULT_CONTENT, ...(data || {}) } as any }
+// Campo apagado no painel (texto vazio) volta ao texto padrão em vez de deixar a página em branco.
+export const useContent = () => { const { data } = useDocData<any>(doc(db, 'siteContent', 'main'), []); const filled = Object.fromEntries(Object.entries(data || {}).filter(([, v]) => (typeof v === 'string' ? v.trim() !== '' : v != null))); return { ...DEFAULT_CONTENT, ...filled } as any }
 export function summarize(rs: any[], period?: string) {
   const l = rs.filter(r => !period || r.period === period), sum = (k: string) => l.reduce((a, r) => a + (r[k] || 0), 0), t = sum('participants'), p = (k: string) => (t ? Math.round(sum(k) / t * 100) : 0)
   return { n: sum('approvedSubmissionCount'), t, impact: p('impactNum'), cont: p('contNum'), uniB: p('uniBNum'), uniA: p('uniANum'), schools: sum('schoolCount') }

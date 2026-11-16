@@ -11,8 +11,8 @@ service cloud.firestore {
     match /siteContent/{id} { allow read: if true; allow write: if isAdmin(); }
     match /publicStats/{id} { allow read: if true; allow write: if false; }          // escrito só por Cloud Functions
     match /aggregatedResults/{id} { allow read: if true; allow write: if false; }    // idem: somente agregados com >= 5 envios
-    match /interviews/{id} { allow read: if resource.data.publicationStatus == 'published' || isAdmin(); allow write: if isAdmin(); }
-    match /documents/{id} { allow read: if resource.data.publicationStatus == 'published' || isAdmin(); allow write: if isAdmin(); }
+    match /interviews/{id} { allow read: if isAdmin() || resource.data.publicationStatus == 'published'; allow write: if isAdmin(); }
+    match /documents/{id} { allow read: if isAdmin() || resource.data.publicationStatus == 'published'; allow write: if isAdmin(); }
 
     // Pesquisas: escolas aprovadas leem apenas as publicadas
     match /surveys/{id} { allow read: if isAdmin() || (schoolApproved() && resource.data.status == 'published'); allow write: if isAdmin(); }
@@ -30,8 +30,10 @@ service cloud.firestore {
     match /submissions/{id} {
       allow get: if isAdmin() || (signed() && id.matches('.*_' + request.auth.uid));
       allow list: if isAdmin() || (signed() && resource.data.schoolId == request.auth.uid);
-      allow create: if schoolApproved() && request.resource.data.schoolId == request.auth.uid && id.matches('.*_' + request.auth.uid)
-        && request.resource.data.status in ['draft', 'pending'] && !('reviewedBy' in request.resource.data)
+      allow create: if schoolApproved() && request.resource.data.schoolId == request.auth.uid
+        && id == request.resource.data.surveyId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['schoolId', 'schoolName', 'surveyId', 'surveyTitle', 'period', 'surveyVersion', 'vals', 'extra', 'questionsSnapshot', 'status', 'updatedAt', 'submittedAt', 'reviewNotes', 'createdAt'])
+        && request.resource.data.status in ['draft', 'pending'] && (!('reviewNotes' in request.resource.data) || request.resource.data.reviewNotes == '')
         && (request.resource.data.status != 'pending' || validVals(request.resource.data.vals));
       allow update: if isAdmin() || (schoolApproved() && resource.data.schoolId == request.auth.uid
         && resource.data.status in ['draft', 'correction'] && request.resource.data.status in ['draft', 'pending']

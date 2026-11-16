@@ -3,7 +3,7 @@ import { Page, Empty, Kpi } from '../components/ui'; import { db } from '../lib/
 export default function Results() {
   const r = useCol<any>(collection(db, 'aggregatedResults'), []); const st = useDocData<any>(doc(db, 'publicStats', 'summary'), []); const [p, setP] = useState('')
   const rs = [...r.data].sort((a: any, b: any) => String(a.period).localeCompare(String(b.period))); const a = summarize(rs, p); const per = [...new Set(rs.map((x: any) => x.period))] as string[]
-  const evo = rs.map((x: any) => ({ x: x.period, ...summarize([x]) }))
+  const evo = per.map(x => ({ x, ...summarize(rs, x) })) // um ponto por período (duas pesquisas no mesmo período somam, não duplicam)
   const chart = (data: any[], bars: any[]) => <div className="h-64"><ResponsiveContainer><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="n" /><YAxis unit="%" domain={[0, 100]} /><Tooltip />{bars.length > 1 && <Legend />}{bars.map(b => <Bar key={b[0]} dataKey={b[0]} name={b[1]} fill={b[2]} radius={[6, 6, 0, 0]} />)}</BarChart></ResponsiveContainer></div>
   return (<Page eyebrow="Resultados da pesquisa" title="Dados claros, agregados e contextualizados">
     {r.loading ? <p className="text-slate-500">Carregando…</p> : r.error ? <Empty>Não foi possível carregar os resultados.</Empty> : !rs.length ? <Empty>Os resultados ainda não estão disponíveis. Eles são publicados após a aprovação de, no mínimo, 5 envios por pesquisa.</Empty> : <>
