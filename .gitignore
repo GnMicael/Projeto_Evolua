@@ -4,3 +4,10 @@ dist/
 .env.*
 backend/dist/
 backend/node_modules/
+
+# Chaves de serviço do Firebase: NUNCA no repositório
+*-firebase-adminsdk-*.json
+serviceAccount*.json
+chave-servico*.json
+evolua-chave*.json
+.firebase/

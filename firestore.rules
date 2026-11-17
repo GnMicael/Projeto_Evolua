@@ -52,6 +52,26 @@ service cloud.firestore {
         && v.uniA <= v.total;
     }
 
+    function validSchoolData(d) {
+      return d.name is string
+        && d.name.size() >= 2
+        && d.name.size() <= 180
+        && d.responsibleName is string
+        && d.responsibleName.size() >= 2
+        && d.responsibleName.size() <= 120
+        && d.institutionalEmail is string
+        && d.institutionalEmail.size() <= 254;
+    }
+
+    function validImage(d) {
+      return !('image' in d)
+        || (d.image is string && d.image.size() < 700000);
+    }
+
+    function validUrl(d) {
+      return d.url is string && d.url.matches('https?://.+') && d.url.size() <= 2000;
+    }
+
     // ==========================================
     // 2. SCHOOLS
     // ==========================================
@@ -86,24 +106,61 @@ service cloud.firestore {
         && request.resource.data.status == 'pending'
         && request.resource.data.createdAt is timestamp;
 
-      // Somente administrador aprova, rejeita ou suspende
-      allow update: if isAdmin()
-        && request.resource.data.diff(resource.data)
-          .affectedKeys().hasOnly([
-            'status',
-            'statusBy',
-            'statusAt'
-          ])
-        && request.resource.data.status in [
-          'pending',
-          'approved',
-          'rejected',
-          'suspended'
-        ]
-        && request.resource.data.statusBy == request.auth.uid
-        && request.resource.data.statusAt is timestamp;
+      // Administrador: (a) aprova, rejeita ou suspende; (b) edita o cadastro e libera/bloqueia a edição pela escola.
+      // Escola: só edita o próprio cadastro quando o administrador liberou (editEnabled) e a liberação é consumida ao salvar.
+      allow update: if (
+          isAdmin()
+          && (
+            (
+              request.resource.data.diff(resource.data)
+                .affectedKeys().hasOnly([
+                  'status',
+                  'statusBy',
+                  'statusAt'
+                ])
+              && request.resource.data.status in [
+                'pending',
+                'approved',
+                'rejected',
+                'suspended'
+              ]
+              && request.resource.data.statusBy == request.auth.uid
+              && request.resource.data.statusAt is timestamp
+            )
+            || (
+              request.resource.data.diff(resource.data)
+                .affectedKeys().hasOnly([
+                  'name',
+                  'responsibleName',
+                  'institutionalEmail',
+                  'editEnabled',
+                  'updatedAt',
+                  'updatedBy'
+                ])
+              && validSchoolData(request.resource.data)
+              && (!('editEnabled' in request.resource.data) || request.resource.data.editEnabled is bool)
+              && request.resource.data.updatedBy == request.auth.uid
+              && request.resource.data.updatedAt is timestamp
+            )
+          )
+        )
+        || (
+          isOwner(schoolId)
+          && resource.data.get('editEnabled', false) == true
+          && request.resource.data.editEnabled == false
+          && request.resource.data.diff(resource.data)
+            .affectedKeys().hasOnly([
+              'name',
+              'responsibleName',
+              'institutionalEmail',
+              'editEnabled',
+              'updatedAt'
+            ])
+          && validSchoolData(request.resource.data)
+          && request.resource.data.updatedAt is timestamp
+        );
 
-      // Exclusão somente pelo backend
+      // Exclusão não permitida pelo cliente
       allow delete: if false;
     }
 
@@ -238,13 +295,25 @@ service cloud.firestore {
     // ==========================================
     // 5. AGGREGATED RESULTS
     // ==========================================
+    // Plano gratuito: sem Cloud Functions. O painel do administrador recalcula
+    // os agregados ao revisar um envio. Nunca publica abaixo de 5 envios aprovados.
 
     match /aggregatedResults/{resultId} {
 
       allow read: if true;
 
-      // Somente Cloud Functions / Admin SDK
-      allow write: if false;
+      allow create, update: if isAdmin()
+        && request.resource.data.surveyId == resultId
+        && request.resource.data.approvedSubmissionCount is number
+        && request.resource.data.approvedSubmissionCount >= 5
+        && request.resource.data.schoolCount is number
+        && request.resource.data.participants is number
+        && request.resource.data.impactNum is number
+        && request.resource.data.contNum is number
+        && request.resource.data.uniBNum is number
+        && request.resource.data.uniANum is number;
+
+      allow delete: if isAdmin();
     }
 
     // ==========================================
@@ -255,8 +324,11 @@ service cloud.firestore {
 
       allow read: if true;
 
-      // Somente Cloud Functions / Admin SDK
-      allow write: if false;
+      allow create, update: if isAdmin()
+        && statId == 'summary'
+        && request.resource.data.schools is number;
+
+      allow delete: if false;
     }
 
     // ==========================================
@@ -267,7 +339,7 @@ service cloud.firestore {
 
       allow read: if isAdmin();
 
-      // Gerenciamento pelo backend
+      // Gravado apenas pelos scripts de administrador (Admin SDK, na sua máquina)
       allow write: if false;
     }
 
@@ -279,8 +351,15 @@ service cloud.firestore {
 
       allow read: if isAdmin();
 
-      // Registro exclusivo pelo backend
-      allow write: if false;
+      // O administrador registra a própria ação; ninguém altera ou apaga registros.
+      allow create: if isAdmin()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'userId', 'action', 'resource', 'resourceId', 'timestamp'
+        ])
+        && request.resource.data.timestamp == request.time;
+
+      allow update, delete: if false;
     }
 
     // ==========================================
@@ -302,7 +381,8 @@ service cloud.firestore {
 
       allow read: if true;
 
-      allow create, update, delete: if isAdmin();
+      allow create, update: if isAdmin() && validImage(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     // ==========================================
@@ -314,7 +394,8 @@ service cloud.firestore {
       allow read: if isAdmin()
         || resource.data.publicationStatus == 'published';
 
-      allow create, update, delete: if isAdmin();
+      allow create, update: if isAdmin() && validImage(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     // ==========================================
@@ -326,7 +407,9 @@ service cloud.firestore {
       allow read: if isAdmin()
         || resource.data.publicationStatus == 'published';
 
-      allow create, update, delete: if isAdmin();
+      // PDFs ficam hospedados fora (link do Drive etc.); o documento guarda só o endereço https.
+      allow create, update: if isAdmin() && validUrl(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     // ==========================================

@@ -13,11 +13,11 @@ export function EditableText({ field, as, className = '', render }: { field: str
 }
 /* Foto única do site (ex.: foto de destaque da página inicial) */
 export function EditableImage({ field, className = '' }: { field: string; className?: string }) {
-  const ct = useContent(); const { editing } = useEdit(); const url = ct[field], path = ct[field + 'Path']
+  const ct = useContent(); const { editing } = useEdit(); const url = ct[field]
   if (!editing) return url ? <img src={url} alt="" className={className} /> : null
   return (<div className="mb-5">{url ? <img src={url} alt="" className={className} /> : <div className="grid h-44 place-items-center rounded-2xl border-2 border-dashed border-brand/50 text-sm text-slate-500">Nenhuma foto de destaque</div>}
-    <div className="mt-2 flex gap-2"><label className="btn-y btn-s cursor-pointer"><ImagePlus size={13} />{url ? 'Trocar foto' : 'Adicionar foto'}<input type="file" accept="image/*" className="hidden" onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) await run(() => api.saveContentImage(field, f, path), 'Foto salva.') }} /></label>
-      {url && <button className="btn-o btn-s !text-red-700" onClick={() => confirm('Remover esta foto?') && run(() => api.removeContentImage(field, path), 'Foto removida.')}><Trash2 size={13} />Remover</button>}</div></div>)
+    <div className="mt-2 flex gap-2"><label className="btn-y btn-s cursor-pointer"><ImagePlus size={13} />{url ? 'Trocar foto' : 'Adicionar foto'}<input type="file" accept="image/*" className="hidden" onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) await run(() => api.saveContentImage(field, f), 'Foto salva.') }} /></label>
+      {url && <button className="btn-o btn-s !text-red-700" onClick={() => confirm('Remover esta foto?') && run(() => api.removeContentImage(field), 'Foto removida.')}><Trash2 size={13} />Remover</button>}</div></div>)
 }
 /* Perguntas frequentes editáveis (adicionar, editar e excluir) */
 export function Faq() {

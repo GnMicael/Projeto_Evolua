@@ -1,7 +1,5 @@
 {
   "projects": {
-    "y": "evolua-8faa4"
-  },
-  "targets": {},
-  "etags": {}
+    "default": "evolua-8faa4"
+  }
 }

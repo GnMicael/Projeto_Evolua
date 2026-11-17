@@ -1,4 +1,4 @@
-import { useState } from 'react'; import { FileText, Download, Image as Img } from 'lucide-react'; import { Page, Empty } from '../components/ui'; import { collection, query, where } from 'firebase/firestore'; import { db } from '../lib/firebase'; import { useCol } from '../services/hooks'; import { fmt } from '../lib/constants'
+import { useState } from 'react'; import { FileText, Download, Image as Img } from 'lucide-react'; import { Page, Empty } from '../components/ui'; import { collection, query, where } from 'firebase/firestore'; import { db } from '../lib/firebase'; import { useCol } from '../services/hooks'; import { fmt } from '../lib/constants'; import { safeUrl } from '../lib/files'
 export function Interviews() {
   const r = useCol<any>(query(collection(db, 'interviews'), where('publicationStatus', '==', 'published')), []); const l = [...r.data].sort((a: any, b: any) => String(b.date).localeCompare(String(a.date))); const [o, setO] = useState<any>(null)
   return (<Page eyebrow="Histórias" title="Entrevistas" lead="Relatos de estudantes e ex-alunos, publicados com autorização.">
@@ -10,5 +10,5 @@ export function Documents() {
   return (<Page eyebrow="Biblioteca" title="Documentos e materiais" lead="Orientações e materiais institucionais para download.">
     <div className="mb-5 flex flex-wrap gap-2">{['', ...cats].map(x => <button key={x} onClick={() => setC(x)} className={`rounded-full border px-4 py-1.5 text-sm font-semibold ${c === x ? 'border-brand bg-brand text-white' : 'border-slate-300 bg-white text-slate-700'}`}>{x || 'Todos'}</button>)}</div>
     {r.loading ? <p className="text-slate-500">Carregando…</p> : r.error ? <Empty>Não foi possível carregar os documentos.</Empty> : !l.length ? <Empty>Nenhum documento publicado.</Empty> : <div className="grid gap-5 md:grid-cols-3">{l.map((d: any) => <div key={d.id} className="card"><span className="rounded-full bg-sky px-3 py-1 text-xs font-semibold text-brand">{d.category}</span><h3 className="mt-3 flex items-start gap-2 font-bold text-navy"><FileText size={18} className="mt-0.5 shrink-0 text-brand" />{d.title}</h3><p className="mb-4 text-sm text-slate-600">{d.description}</p>
-      {d.url ? <a className="btn-o btn-s" target="_blank" rel="noopener noreferrer" href={d.url}><Download size={14} />Baixar PDF</a>   : null}</div>)}</div>}</Page>)
+      {safeUrl(d.url) ? <a className="btn-o btn-s" target="_blank" rel="noopener noreferrer" href={safeUrl(d.url)}><Download size={14} />Abrir PDF</a> : null}</div>)}</div>}</Page>)
 }
