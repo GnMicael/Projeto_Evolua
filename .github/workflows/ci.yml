@@ -30,7 +30,6 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             backend/package-lock.json
-            functions/package-lock.json
 
       - name: Instalar dependências do frontend
         run: npm ci
@@ -38,18 +37,10 @@ jobs:
       - name: Compilar frontend
         run: npm run build
 
-      - name: Instalar dependências do backend
+      - name: Instalar dependências dos scripts de administrador
         working-directory: backend
         run: npm ci --omit=dev
 
-      - name: Validar backend JavaScript
+      - name: Validar scripts de administrador
         working-directory: backend
-        run: npm run build
-
-      - name: Instalar dependências das Cloud Functions
-        working-directory: functions
-        run: npm ci
-
-      - name: Compilar Cloud Functions
-        working-directory: functions
         run: npm run build
