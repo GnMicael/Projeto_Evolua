@@ -1,49 +1,340 @@
+
 rules_version = '2';
+
 service cloud.firestore {
-  match /databases/{db}/documents {
-    function signed() { return request.auth != null; }
-    function isAdmin() { return signed() && request.auth.token.admin == true; }
-    function schoolApproved() { return signed() && exists(/databases/$(db)/documents/schools/$(request.auth.uid)) && get(/databases/$(db)/documents/schools/$(request.auth.uid)).data.status == 'approved'; }
-    function nonNeg(v) { return v is number && v >= 0; }
-    function validVals(v) { return v.total is number && v.total > 0 && nonNeg(v.impact) && nonNeg(v.cont) && nonNeg(v.uniB) && nonNeg(v.uniA) && v.impact <= v.total && v.cont <= v.total && v.uniB <= v.total && v.uniA <= v.total; }
+  match /databases/{database}/documents {
 
-    // Conteúdo público (somente leitura para visitantes)
-    match /siteContent/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /publicStats/{id} { allow read: if true; allow write: if false; }          // escrito só por Cloud Functions
-    match /aggregatedResults/{id} { allow read: if true; allow write: if false; }    // idem: somente agregados com >= 5 envios
-    match /gallery/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /interviews/{id} { allow read: if isAdmin() || resource.data.publicationStatus == 'published'; allow write: if isAdmin(); }
-    match /documents/{id} { allow read: if isAdmin() || resource.data.publicationStatus == 'published'; allow write: if isAdmin(); }
+    // ==========================================
+    // 1. FUNÇÕES DE SEGURANÇA
+    // ==========================================
 
-    // Pesquisas: escolas aprovadas leem apenas as publicadas
-    match /surveys/{id} { allow read: if isAdmin() || (schoolApproved() && resource.data.status == 'published'); allow write: if isAdmin(); }
+    function signed() {
+      return request.auth != null;
+    }
 
-    // Escolas: o cadastro nasce 'pending'; só o administrador altera o status
-    match /schools/{id} {
-      allow get: if isAdmin() || (signed() && request.auth.uid == id);
+    function isAdmin() {
+      return signed() && request.auth.token.admin == true;
+    }
+
+    function isOwner(schoolId) {
+      return signed() && request.auth.uid == schoolId;
+    }
+
+    function schoolApproved() {
+      return signed()
+        && exists(/databases/$(database)/documents/schools/$(request.auth.uid))
+        && get(/databases/$(database)/documents/schools/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    function surveyPublished(surveyId) {
+      return exists(/databases/$(database)/documents/surveys/$(surveyId))
+        && get(/databases/$(database)/documents/surveys/$(surveyId)).data.status == 'published';
+    }
+
+    function validVals(v) {
+      return v is map
+        && v.keys().hasAll([
+          'total', 'impact', 'cont', 'uniB', 'uniA'
+        ])
+        && v.total is number
+        && v.impact is number
+        && v.cont is number
+        && v.uniB is number
+        && v.uniA is number
+        && v.total > 0
+        && v.impact >= 0
+        && v.cont >= 0
+        && v.uniB >= 0
+        && v.uniA >= 0
+        && v.impact <= v.total
+        && v.cont <= v.total
+        && v.uniB <= v.total
+        && v.uniA <= v.total;
+    }
+
+    // ==========================================
+    // 2. SCHOOLS
+    // ==========================================
+
+    match /schools/{schoolId} {
+
+      // Administrador ou própria escola
+      allow get: if isAdmin() || isOwner(schoolId);
+
       allow list: if isAdmin();
-      allow create: if signed() && request.auth.uid == id && request.resource.data.status == 'pending'
-        && request.resource.data.keys().hasOnly(['name', 'responsibleName', 'institutionalEmail', 'status', 'createdAt']);
-      allow update: if isAdmin();
+
+      // Cadastro inicial da escola
+      allow create: if isOwner(schoolId)
+        && request.resource.data.keys().hasAll([
+          'name',
+          'responsibleName',
+          'institutionalEmail',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'responsibleName',
+          'institutionalEmail',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.responsibleName is string
+        && request.resource.data.institutionalEmail is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt is timestamp;
+
+      // Somente administrador aprova, rejeita ou suspende
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly([
+            'status',
+            'statusBy',
+            'statusAt'
+          ])
+        && request.resource.data.status in [
+          'pending',
+          'approved',
+          'rejected',
+          'suspended'
+        ]
+        && request.resource.data.statusBy == request.auth.uid
+        && request.resource.data.statusAt is timestamp;
+
+      // Exclusão somente pelo backend
+      allow delete: if false;
     }
 
-    // Envios: id = {surveyId}_{schoolId}. Escola só mexe nos próprios, em rascunho/correção, e nunca nos campos de revisão
-    match /submissions/{id} {
-      allow get: if isAdmin() || (signed() && id.matches('.*_' + request.auth.uid));
-      allow list: if isAdmin() || (signed() && resource.data.schoolId == request.auth.uid);
-      allow create: if schoolApproved() && request.resource.data.schoolId == request.auth.uid
-        && id == request.resource.data.surveyId + '_' + request.auth.uid
-        && request.resource.data.keys().hasOnly(['schoolId', 'schoolName', 'surveyId', 'surveyTitle', 'period', 'surveyVersion', 'vals', 'extra', 'questionsSnapshot', 'status', 'updatedAt', 'submittedAt', 'reviewNotes', 'createdAt'])
-        && request.resource.data.status in ['draft', 'pending'] && (!('reviewNotes' in request.resource.data) || request.resource.data.reviewNotes == '')
-        && (request.resource.data.status != 'pending' || validVals(request.resource.data.vals));
-      allow update: if isAdmin() || (schoolApproved() && resource.data.schoolId == request.auth.uid
-        && resource.data.status in ['draft', 'correction'] && request.resource.data.status in ['draft', 'pending']
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vals', 'extra', 'questionsSnapshot', 'surveyVersion', 'status', 'updatedAt', 'submittedAt', 'surveyTitle', 'period', 'schoolName'])
-        && (request.resource.data.status != 'pending' || validVals(request.resource.data.vals)));
+    // ==========================================
+    // 3. SURVEYS
+    // ==========================================
+
+    match /surveys/{surveyId} {
+
+      // Pesquisas publicadas para escolas aprovadas
+      allow read: if isAdmin()
+        || (
+          schoolApproved()
+          && resource.data.status == 'published'
+        );
+
+      // Administrador possui CRUD completo
+      allow create, update, delete: if isAdmin();
     }
 
-    match /adminProfiles/{id} { allow read: if isAdmin(); allow write: if false; }
-    match /auditLogs/{id} { allow read: if isAdmin(); allow write: if false; }
-    match /{document=**} { allow read, write: if false; }
+    // ==========================================
+    // 4. SUBMISSIONS
+    // ==========================================
+
+    match /submissions/{submissionId} {
+
+      // Consulta do próprio envio
+      allow get: if isAdmin()
+        || (
+          signed()
+          && resource.data.schoolId == request.auth.uid
+        );
+
+      // Listagem administrativa ou da própria escola
+      allow list: if isAdmin()
+        || (
+          signed()
+          && resource.data.schoolId == request.auth.uid
+        );
+
+      // Criação de respostas
+      allow create: if schoolApproved()
+        && request.resource.data.schoolId == request.auth.uid
+        && request.resource.data.surveyId is string
+        && submissionId ==
+          request.resource.data.surveyId + '_' + request.auth.uid
+        && surveyPublished(request.resource.data.surveyId)
+        && request.resource.data.keys().hasAll([
+          'schoolId',
+          'schoolName',
+          'surveyId',
+          'surveyTitle',
+          'period',
+          'surveyVersion',
+          'vals',
+          'extra',
+          'questionsSnapshot',
+          'status',
+          'updatedAt',
+          'reviewNotes',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'schoolId',
+          'schoolName',
+          'surveyId',
+          'surveyTitle',
+          'period',
+          'surveyVersion',
+          'vals',
+          'extra',
+          'questionsSnapshot',
+          'status',
+          'updatedAt',
+          'submittedAt',
+          'reviewNotes',
+          'createdAt'
+        ])
+        && request.resource.data.status in [
+          'draft',
+          'pending'
+        ]
+        && request.resource.data.reviewNotes == ''
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && (
+          request.resource.data.status != 'pending'
+          || validVals(request.resource.data.vals)
+        );
+
+      // Atualização dos próprios rascunhos ou correções
+      allow update: if isAdmin()
+        || (
+          schoolApproved()
+          && resource.data.schoolId == request.auth.uid
+          && resource.data.status in [
+            'draft',
+            'correction'
+          ]
+          && request.resource.data.schoolId == resource.data.schoolId
+          && request.resource.data.surveyId == resource.data.surveyId
+          && submissionId ==
+            resource.data.surveyId + '_' + request.auth.uid
+          && surveyPublished(resource.data.surveyId)
+          && request.resource.data.status in [
+            'draft',
+            'pending'
+          ]
+          && request.resource.data.diff(resource.data)
+            .affectedKeys().hasOnly([
+              'vals',
+              'extra',
+              'questionsSnapshot',
+              'surveyVersion',
+              'status',
+              'updatedAt',
+              'submittedAt',
+              'surveyTitle',
+              'period',
+              'schoolName'
+            ])
+          && (
+            request.resource.data.status != 'pending'
+            || validVals(request.resource.data.vals)
+          )
+        );
+
+      // Exclusão não permitida pelo cliente
+      allow delete: if false;
+    }
+
+    // ==========================================
+    // 5. AGGREGATED RESULTS
+    // ==========================================
+
+    match /aggregatedResults/{resultId} {
+
+      allow read: if true;
+
+      // Somente Cloud Functions / Admin SDK
+      allow write: if false;
+    }
+
+    // ==========================================
+    // 6. PUBLIC STATS
+    // ==========================================
+
+    match /publicStats/{statId} {
+
+      allow read: if true;
+
+      // Somente Cloud Functions / Admin SDK
+      allow write: if false;
+    }
+
+    // ==========================================
+    // 7. ADMIN PROFILES
+    // ==========================================
+
+    match /adminProfiles/{adminId} {
+
+      allow read: if isAdmin();
+
+      // Gerenciamento pelo backend
+      allow write: if false;
+    }
+
+    // ==========================================
+    // 8. AUDIT LOGS
+    // ==========================================
+
+    match /auditLogs/{logId} {
+
+      allow read: if isAdmin();
+
+      // Registro exclusivo pelo backend
+      allow write: if false;
+    }
+
+    // ==========================================
+    // 9. SITE CONTENT
+    // ==========================================
+
+    match /siteContent/{contentId} {
+
+      allow read: if true;
+
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 10. GALLERY
+    // ==========================================
+
+    match /gallery/{imageId} {
+
+      allow read: if true;
+
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 11. INTERVIEWS
+    // ==========================================
+
+    match /interviews/{interviewId} {
+
+      allow read: if isAdmin()
+        || resource.data.publicationStatus == 'published';
+
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 12. DOCUMENTS
+    // ==========================================
+
+    match /documents/{documentId} {
+
+      allow read: if isAdmin()
+        || resource.data.publicationStatus == 'published';
+
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 13. BLOQUEIO GLOBAL
+    // ==========================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }
