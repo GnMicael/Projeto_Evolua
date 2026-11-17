@@ -1,5 +1,4 @@
 {
-  "$esquema": "https://openapi.vercel.sh/vercel.json",
   "serviços": {
     "aplicativo": {
       "raiz": ".",
