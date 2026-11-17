@@ -7,6 +7,16 @@ service firebase.storage {
       allow create, update: if request.auth != null && request.auth.token.admin == true && request.resource.size < 5 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
       allow delete: if request.auth != null && request.auth.token.admin == true;
     }
+    match /public/gallery/{id}/{file} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.auth.token.admin == true && request.resource.size < 5 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && request.auth.token.admin == true;
+    }
+    match /public/site/{field}/{file} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.auth.token.admin == true && request.resource.size < 5 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && request.auth.token.admin == true;
+    }
     match /public/documents/{id}/{file} {
       allow read: if true;
       allow create, update: if request.auth != null && request.auth.token.admin == true && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType == 'application/pdf';

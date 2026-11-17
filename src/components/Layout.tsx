@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router-dom'; import { Pencil, Check } from 'lucide-react'; import { useEdit } from '../contexts/EditContext'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'; import { useState, useEffect } from 'react'; import { Menu, X, School, ChevronDown, UserRound, LayoutDashboard, LogOut } from 'lucide-react'; import { useAuth } from '../contexts/AuthContext'; import { logout } from '../services/api'
 const items = [['/', 'Início'], ['/projeto', 'O projeto'], ['/pesquisa', 'Pesquisa'], ['/resultados', 'Resultados'], ['/entrevistas', 'Entrevistas'], ['/documentos', 'Documentos']]
 const mi = 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-navy hover:bg-sky'
@@ -12,6 +13,11 @@ function AccountMenu() {
       {ses ? <><Link role="menuitem" to={adm ? '/gestao' : '/escolas/painel'} className={mi}><LayoutDashboard size={18} className="text-brand" />Minha área</Link><button role="menuitem" className={mi + ' w-full'} onClick={() => { logout().then(() => nav('/')) }}><LogOut size={18} className="text-brand" />Sair</button></>
         : <Link role="menuitem" to="/escolas" className={mi}><School size={18} className="text-brand" /><span>Entrar com Google<small className="block font-normal text-slate-500">Escolas participantes</small></span></Link>}</div>}</div>)
 }
+function EditBar() {
+  const a = useAuth(); const { editing, toggle } = useEdit(); const loc = useLocation()
+  if (a.role !== 'admin' || loc.pathname.startsWith('/gestao')) return null
+  return <button onClick={toggle} className={`fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold shadow-xl ${editing ? 'bg-sun text-yellow-950' : 'bg-navy text-white'}`}>{editing ? <><Check size={16} />Concluir edição</> : <><Pencil size={16} />Editar páginas</>}</button>
+}
 export default function Layout() {
   const [open, setOpen] = useState(false); const a = useAuth(); const ses = a.user && a.role !== 'visitor' ? a : null
   return (<div className="min-h-screen font-sans text-slate-900">
@@ -24,5 +30,5 @@ export default function Layout() {
     <Outlet />
     <footer className="bg-[#071a40] py-12 text-sm text-blue-200"><div className="mx-auto grid max-w-6xl gap-8 px-6 sm:grid-cols-4"><div className="sm:col-span-2"><b className="text-lg text-white">Evolua</b><p className="mt-2 max-w-sm">Pesquisa sobre os caminhos que a ciência abre para os projetos de vida de estudantes e ex-alunos das escolas estaduais.</p></div>
       <div className="flex flex-col gap-1"><b className="text-white">Navegação</b><Link to="/projeto">O projeto</Link><Link to="/resultados">Resultados</Link><Link to="/documentos">Biblioteca de documentos</Link></div>
-      <div className="flex flex-col gap-1"><b className="text-white">Acesso</b>{ses ? <Link to={a.role === 'admin' ? '/gestao' : '/escolas/painel'}>Minha área</Link> : <Link to="/escolas">Área das escolas</Link>}<a href="https://www.instagram.com/evoluaimpactoprojetos">Instagram</a></div></div></footer></div>)
+      <div className="flex flex-col gap-1"><b className="text-white">Acesso</b>{ses ? <Link to={a.role === 'admin' ? '/gestao' : '/escolas/painel'}>Minha área</Link> : <Link to="/escolas">Área das escolas</Link>}<a href="https://www.instagram.com/evoluaimpactoprojetos">Instagram</a></div></div></footer><EditBar /></div>)
 }

@@ -11,6 +11,7 @@ service cloud.firestore {
     match /siteContent/{id} { allow read: if true; allow write: if isAdmin(); }
     match /publicStats/{id} { allow read: if true; allow write: if false; }          // escrito só por Cloud Functions
     match /aggregatedResults/{id} { allow read: if true; allow write: if false; }    // idem: somente agregados com >= 5 envios
+    match /gallery/{id} { allow read: if true; allow write: if isAdmin(); }
     match /interviews/{id} { allow read: if isAdmin() || resource.data.publicationStatus == 'published'; allow write: if isAdmin(); }
     match /documents/{id} { allow read: if isAdmin() || resource.data.publicationStatus == 'published'; allow write: if isAdmin(); }
 

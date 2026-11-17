@@ -1,5 +1,5 @@
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth'
-import { collection, doc, setDoc, updateDoc, deleteDoc, getDoc, serverTimestamp, arrayUnion } from 'firebase/firestore'
+import { collection, doc, setDoc, updateDoc, deleteDoc, getDoc, serverTimestamp, arrayUnion, deleteField } from 'firebase/firestore'
 import { ref as sref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; import { httpsCallable } from 'firebase/functions'
 import { auth, db, storage, functions } from '../lib/firebase'; import { resizeImage, safeName } from '../lib/files'
 const uidOf = () => auth.currentUser?.uid
@@ -57,3 +57,13 @@ export async function saveDocument(cur: any, f: any, file?: File) {
 export const saveContent = (c: any) => setDoc(doc(db, 'siteContent', 'main'), { ...c, updatedAt: serverTimestamp() }, { merge: true })
 export const createAdmin = (d: { name: string; email: string }) => httpsCallable(functions, 'createAdmin')(d)
 export const removeAdmin = (uid: string) => httpsCallable(functions, 'removeAdmin')({ uid })
+export const resetContent = (field: string) => setDoc(doc(db, 'siteContent', 'main'), { [field]: deleteField() }, { merge: true })
+export async function saveContentImage(field: string, file: File, oldPath?: string) {
+  const blob = await resizeImage(file), path = `public/site/${field}/${Date.now()}.jpg`, s = sref(storage, path); await uploadBytes(s, blob, { contentType: 'image/jpeg' }); const url = await getDownloadURL(s)
+  await saveContent({ [field]: url, [field + 'Path']: path }); if (oldPath) deleteObject(sref(storage, oldPath)).catch(() => {}) }
+export async function removeContentImage(field: string, oldPath?: string) { if (oldPath) await deleteObject(sref(storage, oldPath)).catch(() => {}); return setDoc(doc(db, 'siteContent', 'main'), { [field]: deleteField(), [field + 'Path']: deleteField() }, { merge: true }) }
+export async function saveGalleryItem(cur: any, caption: string, file?: File) {
+  const r = cur ? doc(db, 'gallery', cur.id) : doc(collection(db, 'gallery')); let image = cur?.image || '', imagePath = cur?.imagePath || ''
+  if (file) { const blob = await resizeImage(file), path = `public/gallery/${r.id}/${Date.now()}.jpg`, s = sref(storage, path); await uploadBytes(s, blob, { contentType: 'image/jpeg' }); image = await getDownloadURL(s); if (imagePath) deleteObject(sref(storage, imagePath)).catch(() => {}); imagePath = path }
+  if (!image) throw new Error('Selecione uma foto.')
+  const d = { caption, image, imagePath, updatedAt: serverTimestamp() }; return cur ? updateDoc(r, d) : setDoc(r, { ...d, createdAt: serverTimestamp() }) }

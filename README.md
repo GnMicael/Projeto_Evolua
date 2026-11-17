@@ -37,3 +37,10 @@ Versionamento: editar as perguntas de uma pesquisa incrementa version; cada envi
 Conteúdo editável: Gestão > Conteúdo grava siteContent/main; entrevistas (com foto) e PDFs vão para o Storage.
 Pendências recomendadas antes de coletar dados reais
 Revisão jurídica/LGPD (termos de uso, política de privacidade, consentimento de menores), testes automatizados das regras com o Emulator Suite, revisão metodológica da pesquisa e domínio/e-mail institucional para os templates do Firebase Auth.
+## Edição do site pelo administrador
+Com o login administrativo, aparece o botão **Editar páginas** (canto inferior direito). Ligado, é possível, direto nas páginas:
+- editar os textos (título e subtítulo da página inicial, apresentação, objetivos, justificativa, público, história, importância, agradecimentos) e **restaurar o texto padrão**;
+- adicionar, trocar e remover a **foto de destaque** da página inicial;
+- adicionar, editar a legenda, trocar e **excluir** fotos da **galeria** (página O projeto; também em Gestão > Galeria);
+- adicionar, editar e excluir **perguntas frequentes**.
+Tudo é gravado no Firestore (`siteContent/main`, `gallery`) e no Storage (`public/gallery`, `public/site`), então permanece salvo. Publique as regras novamente: `firebase deploy --only firestore:rules,storage`.

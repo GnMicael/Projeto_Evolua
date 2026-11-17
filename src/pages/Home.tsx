@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'; import { useState } from 'react'; import { collection, doc } from 'firebase/firestore'; import { GraduationCap, Rocket, Star, Microscope, Ear, BarChart3, CheckCircle2, MessageCircle, Sparkles } from 'lucide-react'
-import { Acronym, FlipCard, Faq } from '../components/ui'; import { db } from '../lib/firebase'; import { useCol, useDocData, useContent, summarize } from '../services/hooks'; import { useAuth } from '../contexts/AuthContext'
+import { Acronym, FlipCard } from '../components/ui'; import { Faq, EditableText, EditableImage } from '../components/Editable'; import { db } from '../lib/firebase'; import { useCol, useDocData, useContent, summarize } from '../services/hooks'; import { useAuth } from '../contexts/AuthContext'
 const chips = [[GraduationCap, 'Universidade', 'A ciência pode ser a ponte até o ensino superior.'], [Rocket, 'Liderança', 'Coordenar um projeto ensina a liderar ideias e pessoas.'], [Star, 'Oportunidades', 'Feiras, olimpíadas e redes de contato abrem portas novas.'], [Microscope, 'Aprendizado', 'Aprender fazendo deixa a curiosidade em movimento.']] as any[]
 const pillars = [[Ear, 'Escuta com propósito', 'Ouvimos estudantes e ex-alunos para entender caminhos reais.'], [BarChart3, 'Dados agregados', 'Nunca mostramos respostas individuais.'], [CheckCircle2, 'Revisão responsável', 'A equipe revisa cada envio antes de publicar.'], [MessageCircle, 'Linguagem acessível', 'Resultados explicados de forma simples e clara.']] as any[]
 export default function Home() {
@@ -7,9 +7,9 @@ export default function Home() {
   const kp: any[] = [[st.data?.schools ?? 0, 'escolas participantes'], [sm.n, 'envios aprovados'], [sm.t || '—', 'estudantes alcançados']]
   return (<>
     <section><div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 md:grid-cols-[1.15fr_1fr]"><div><span className="eyebrow">Ciência que amplia futuros</span>
-      <h1 className="mb-5 mt-3 text-4xl font-extrabold leading-tight tracking-tight text-navy md:text-6xl">{ct.heroTitle}</h1><p className="max-w-xl text-lg text-slate-600">{ct.heroSub}</p>
+      <EditableText field="heroTitle" as="h1" className="mb-5 mt-3 text-4xl font-extrabold leading-tight tracking-tight text-navy md:text-6xl" /><EditableText field="heroSub" className="max-w-xl text-lg text-slate-600" />
       <div className="mt-7 flex flex-wrap gap-3"><Link to="/projeto" className="btn-p">Conheça o projeto</Link><Link to="/resultados" className="btn-o">Veja os resultados</Link></div></div>
-      <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-xl shadow-navy/5"><span className="eyebrow">Pesquisa em movimento</span>
+      <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-xl shadow-navy/5"><EditableImage field="heroImage" className="mb-5 h-56 w-full rounded-2xl object-cover" /><span className="eyebrow">Pesquisa em movimento</span>
         <div className="mt-3 grid grid-cols-3 gap-3 text-center">{kp.map(k => <div key={k[1]}><div className="text-3xl font-extrabold text-navy">{k[0]}</div><span className="text-xs text-slate-500">{k[1]}</span></div>)}</div>
         <hr className="my-5" /><b className="flex items-center gap-2 text-navy"><Sparkles size={18} className="text-brand" />O que a ciência pode abrir para você?</b>
         <div className="mt-3 flex flex-wrap gap-2">{chips.map((c, i) => { const I = c[0]; return <button key={c[1]} onClick={() => setQ(i)} className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold transition ${q === i ? 'border-sun bg-sun text-yellow-950' : 'border-slate-200 bg-white text-navy hover:border-brand'}`}><I size={15} />{c[1]}</button> })}</div>
