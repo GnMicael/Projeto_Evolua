@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom'; import { Pencil, Check } from 'lucide-react'; import { useEdit } from '../contexts/EditContext'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'; import { useState, useEffect } from 'react'; import { Menu, X, School, ChevronDown, UserRound, LayoutDashboard, LogOut } from 'lucide-react'; import { useAuth } from '../contexts/AuthContext'; import { logout } from '../services/api'
-const items = [['/', 'Início'], ['/projeto', 'O projeto'], ['/pesquisa', 'Pesquisa'], ['/resultados', 'Resultados'], ['/entrevistas', 'Entrevistas'], ['/documentos', 'Documentos']]
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'; import { useState, useEffect } from 'react'; import { Menu, X, School, ChevronDown, UserRound, LayoutDashboard, LogOut } from 'lucide-react'; import logo from '../assets/logo.png'; import { CONTACT } from '../lib/evoluaData'; import { useAuth } from '../contexts/AuthContext'; import { logout } from '../services/api'
+const items = [['/', 'Início'], ['/projeto', 'O projeto'], ['/pesquisa', 'Pesquisa'], ['/resultados', 'Resultados'], ['/entrevistas', 'Entrevistas'], ['/documentos', 'Documentos'], ['/ciencia', 'Faça ciência'], ['/contato', 'Contato']]
 const mi = 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-navy hover:bg-sky'
 function AccountMenu() {
   const [o, setO] = useState(false); const a = useAuth(); const nav = useNavigate()
@@ -23,12 +23,12 @@ export default function Layout() {
   return (<div className="min-h-screen font-sans text-slate-900">
     <div className="bg-navy py-2 text-xs text-blue-200"><div className="mx-auto flex max-w-6xl justify-between px-6"><span>Pesquisa educacional · escolas estaduais · desde 2023</span><span className="hidden sm:inline">Apenas dados agregados e aprovados</span></div></div>
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur"><div className="mx-auto flex h-[70px] max-w-6xl items-center gap-8 px-6">
-      <Link to="/" className="flex items-center gap-2 text-xl font-extrabold text-navy"><span className="h-8 w-8 rounded-[10px] bg-gradient-to-br from-brand from-55% to-sun to-55%" />Evolua</Link>
+      <Link to="/" className="flex items-center gap-2 text-xl font-extrabold text-navy"><img src={logo} alt="" className="h-10 w-10 rounded-xl object-cover" />Evolua</Link>
       <nav className={`${open ? 'flex' : 'hidden'} absolute left-0 right-0 top-[70px] flex-col border-b bg-white p-4 md:static md:ml-auto md:flex md:flex-row md:border-0 md:p-0`}>
         {items.map(([to, l]) => <NavLink key={to} to={to} end={to === '/'} onClick={() => setOpen(false)} className={({ isActive }) => `rounded-lg px-3 py-2 text-sm font-medium ${isActive ? 'bg-sky text-brand' : 'text-slate-700 hover:bg-sky'}`}>{l}</NavLink>)}</nav>
       <AccountMenu /><button className="md:hidden" aria-label="Menu" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button></div></header>
     <Outlet />
-    <footer className="bg-[#071a40] py-12 text-sm text-blue-200"><div className="mx-auto grid max-w-6xl gap-8 px-6 sm:grid-cols-4"><div className="sm:col-span-2"><b className="text-lg text-white">Evolua</b><p className="mt-2 max-w-sm">Pesquisa sobre os caminhos que a ciência abre para os projetos de vida de estudantes e ex-alunos das escolas estaduais.</p></div>
-      <div className="flex flex-col gap-1"><b className="text-white">Navegação</b><Link to="/projeto">O projeto</Link><Link to="/resultados">Resultados</Link><Link to="/documentos">Biblioteca de documentos</Link></div>
-      <div className="flex flex-col gap-1"><b className="text-white">Acesso</b>{ses ? <Link to={a.role === 'admin' ? '/gestao' : '/escolas/painel'}>Minha área</Link> : <Link to="/escolas">Área das escolas</Link>}<a href="https://www.instagram.com/evoluaimpactoprojetos">Instagram</a></div></div></footer><EditBar /></div>)
+    <footer className="bg-[#071a40] py-12 text-sm text-blue-200"><div className="mx-auto grid max-w-6xl gap-8 px-6 sm:grid-cols-4"><div className="sm:col-span-2"><span className="flex items-center gap-2"><img src={logo} alt="" className="h-9 w-9 rounded-xl object-cover" /><b className="text-lg text-white">Evolua</b></span><p className="mt-2 max-w-sm">Pesquisa sobre os caminhos que a ciência abre para os projetos de vida de estudantes e ex-alunos das escolas estaduais.</p></div>
+      <div className="flex flex-col gap-1"><b className="text-white">Navegação</b><Link to="/projeto">O projeto</Link><Link to="/resultados">Resultados</Link><Link to="/documentos">Biblioteca de documentos</Link><Link to="/ciencia">Faça ciência</Link><Link to="/contato">Contato</Link></div>
+      <div className="flex flex-col gap-1"><b className="text-white">Acesso</b>{ses ? <Link to={a.role === 'admin' ? '/gestao' : '/escolas/painel'}>Minha área</Link> : <Link to="/escolas">Área das escolas</Link>}<a href={CONTACT.instagram}>Instagram</a><a href={"mailto:" + CONTACT.email}>E-mail</a></div></div></footer><EditBar /></div>)
 }

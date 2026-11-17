@@ -29,7 +29,7 @@ export function Faq() {
     {ed === items.length && editor(items.length)}{editing && ed === null && <button className="btn-y btn-s mt-4" onClick={() => { setEd(items.length); setQ(''); setA('') }}><Plus size={13} />Adicionar pergunta</button>}</div>)
 }
 /* Galeria de fotos do projeto */
-export function Gallery({ forceEdit = false }: { forceEdit?: boolean }) {
+export function Gallery({ forceEdit = false, title = 'Momentos do projeto', eyebrow = 'Galeria' }: { forceEdit?: boolean; title?: string; eyebrow?: string }) {
   const { editing } = useEdit(); const ed = editing || forceEdit; const r = useCol<any>(collection(db, 'gallery'), []); const list = [...r.data].sort((x: any, y: any) => (x.createdAt?.seconds || 0) - (y.createdAt?.seconds || 0))
   const [big, setBig] = useState<any>(null); const [cap, setCap] = useState<any>(null); const [busy, setBusy] = useState(false)
   const add = async (e: any) => { e.preventDefault(); const fm = e.target; setBusy(true); const ok = await run(() => api.saveGalleryItem(null, fm.caption.value.trim(), fm.photo.files[0]), 'Foto adicionada.'); setBusy(false); if (ok) fm.reset() }
@@ -42,5 +42,5 @@ export function Gallery({ forceEdit = false }: { forceEdit?: boolean }) {
         {ed && cap?.id !== p.id && <div className="mt-2 flex flex-wrap gap-2"><button className="btn-o btn-s" onClick={() => setCap({ id: p.id, text: p.caption || '' })}><Pencil size={13} />Legenda</button><label className="btn-o btn-s cursor-pointer"><ImagePlus size={13} />Trocar<input type="file" accept="image/*" className="hidden" onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) await run(() => api.saveGalleryItem(p, p.caption || '', f), 'Foto trocada.') }} /></label><button className="btn-o btn-s !text-red-700" onClick={() => confirm('Excluir esta foto?') && run(() => api.deleteItem('gallery', p), 'Foto excluída.')}><Trash2 size={13} />Excluir</button></div>}</figcaption></figure>)}</div>}
     {big && <div className="fixed inset-0 z-[60] grid place-items-center bg-navy/80 p-4" onClick={() => setBig(null)}><figure className="max-w-4xl" onClick={e => e.stopPropagation()}><img src={big.image} alt={big.caption || ''} className="max-h-[80vh] rounded-xl" />{big.caption && <figcaption className="mt-2 text-center text-sm text-white">{big.caption}</figcaption>}</figure></div>}</>)
   if (forceEdit) return content
-  return <section className="py-14"><div className="mx-auto max-w-6xl px-6"><span className="eyebrow">Galeria</span><h2 className="mb-6 mt-2 text-3xl font-bold text-navy">Momentos do projeto</h2>{content}</div></section>
+  return <section className="py-14"><div className="mx-auto max-w-6xl px-6"><span className="eyebrow">{eyebrow}</span><h2 className="mb-6 mt-2 text-3xl font-bold text-navy">{title}</h2>{content}</div></section>
 }

@@ -1,0 +1,11 @@
+import { ExternalLink, Compass } from 'lucide-react'; import { Page } from '../components/ui'; import { SCIENCE, SCIENCE_PURPOSE } from '../lib/evoluaData'
+export default function Science() {
+  return (<Page eyebrow="Conheça e participe da ciência" title="Universo da Iniciação Científica" lead="Um guia para estudantes e professores que querem começar a fazer ciência na escola.">
+    <div className="grid items-start gap-10 md:grid-cols-[240px_1fr]">
+      <nav aria-label="Neste guia" className="hidden md:sticky md:top-24 md:block"><b className="mb-3 block text-xs font-bold uppercase tracking-widest text-slate-500">Neste guia</b><ol className="space-y-1">{SCIENCE.map((s, i) => <li key={s.id}><a href={'#' + s.id} className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-sky hover:text-brand"><span className="mr-2 font-bold text-brand">{i + 1}</span>{s.title}</a></li>)}</ol></nav>
+      <div className="space-y-5">{SCIENCE.map((s, i) => <article key={s.id} id={s.id} className="card scroll-mt-24"><div className="flex items-start gap-4"><span className="ico font-bold">{i + 1}</span><div className="min-w-0 flex-1"><h2 className="text-xl font-bold text-navy">{s.title}</h2><p className="mt-3 text-slate-600">{s.text}</p>
+        {s.intro && <p className="mt-3 font-semibold text-navy">{s.intro}</p>}
+        {s.list && <ul className="mt-3 grid gap-2 sm:grid-cols-2">{s.list.map(l => <li key={l.label} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">{l.url ? <a href={l.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-bold text-brand hover:underline">{l.label}<ExternalLink size={13} /></a> : <b className="text-navy">{l.label}</b>}{l.desc && <span className="block text-slate-600">{l.desc}</span>}</li>)}</ul>}
+        {s.outro && <p className="mt-3 font-semibold text-navy">{s.outro}</p>}</div></div></article>)}
+        <div className="rounded-3xl bg-navy p-7 text-blue-100"><span className="eyebrow !text-sun inline-flex items-center gap-2"><Compass size={16} />Propósito do Universo da Iniciação Científica</span><p className="mt-3 text-lg font-semibold leading-snug text-white">{SCIENCE_PURPOSE}</p></div></div></div></Page>)
+}
