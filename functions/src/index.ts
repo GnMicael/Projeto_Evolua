@@ -6,6 +6,8 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 
 initializeApp()
 const db = getFirestore()
+// Tipado como any: em alguns ambientes o TypeScript não enxerga os métodos herdados de BaseAuth (TS2339).
+const adminAuth: any = getAuth()
 const MIN = 5
 const REVIEW_STATUSES = ['approved', 'correction', 'rejected']
 
@@ -64,8 +66,8 @@ export const createAdmin = onCall(async r => {
   const email = typeof r.data?.email === 'string' ? r.data.email.trim().toLowerCase() : ''
   if (!email) throw new HttpsError('invalid-argument', 'Informe o e-mail de uma conta que já entrou com Google.')
   let u
-  try { u = await getAuth().getUserByEmail(email) } catch { throw new HttpsError('not-found', 'A conta precisa entrar com Google uma vez antes de ser promovida.') }
-  await getAuth().setCustomUserClaims(u.uid, { ...(u.customClaims || {}), admin: true })
+  try { u = await adminAuth.getUserByEmail(email) } catch { throw new HttpsError('not-found', 'A conta precisa entrar com Google uma vez antes de ser promovida.') }
+  await adminAuth.setCustomUserClaims(u.uid, { ...(u.customClaims || {}), admin: true })
   await db.doc(`adminProfiles/${u.uid}`).set({ uid: u.uid, name: name || u.displayName || email, email, role: 'admin', updatedAt: FieldValue.serverTimestamp(), createdBy: r.auth!.uid }, { merge: true })
   await audit(r.auth!.uid, 'admin:create', 'adminProfiles', u.uid)
   return { uid: u.uid }
@@ -78,10 +80,10 @@ export const removeAdmin = onCall(async r => {
   const uid = typeof r.data?.uid === 'string' ? r.data.uid : ''
   if (!uid || uid === r.auth!.uid) throw new HttpsError('failed-precondition', 'Não é possível remover a própria conta.')
   try {
-    const u = await getAuth().getUser(uid)
+    const u = await adminAuth.getUser(uid)
     const { admin: _admin, ...claims } = u.customClaims || {}
-    await getAuth().setCustomUserClaims(uid, claims)
-    await getAuth().revokeRefreshTokens(uid)
+    await adminAuth.setCustomUserClaims(uid, claims)
+    await adminAuth.revokeRefreshTokens(uid)
   } catch (e: any) {
     if (e?.code !== 'auth/user-not-found') throw new HttpsError('internal', 'Não foi possível remover a permissão.')
   }
