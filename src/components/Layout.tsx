@@ -21,7 +21,7 @@ function EditBar() {
 export default function Layout() {
   const [open, setOpen] = useState(false); const a = useAuth(); const ses = a.user && a.role !== 'visitor' ? a : null
   return (<div className="min-h-screen font-sans text-slate-900">
-    <div className="bg-navy py-2 text-xs text-blue-200"><div className="mx-auto flex max-w-6xl justify-between px-6"><span>Pesquisa educacional · escolas estaduais · desde 2023</span><span className="hidden sm:inline">Apenas dados agregados e aprovados</span></div></div>
+    <div className="bg-navy py-2 text-xs text-blue-200"><div className="mx-auto flex max-w-6xl justify-between px-6"><span>Pesquisa educacional · escolas estaduais · desde 2026</span><span className="hidden sm:inline">Apenas dados agregados e aprovados</span></div></div>
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur"><div className="mx-auto flex h-[70px] max-w-6xl items-center gap-8 px-6">
       <Link to="/" className="flex items-center gap-2 text-xl font-extrabold text-navy"><img src={logo} alt="" className="h-10 w-10 rounded-xl object-cover" />Evolua</Link>
       <nav className={`${open ? 'flex' : 'hidden'} absolute left-0 right-0 top-[70px] flex-col border-b bg-white p-4 md:static md:ml-auto md:flex md:flex-row md:border-0 md:p-0`}>

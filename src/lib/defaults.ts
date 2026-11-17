@@ -34,7 +34,7 @@ export const DEFAULT_CONTENT: any = {
   justify: 'Entender esses caminhos ajuda escolas e redes de ensino a ampliar o acesso à ciência e a apoiar projetos de vida.',
   thanks: THANKS.join('\n'),
   audience: 'Alunos e ex-alunos das escolas estaduais.',
-  history: 'Projeto em atividade desde 2023, investigando os caminhos que a ciência abre.',
+  history: 'Projeto em atividade desde 2026, investigando os caminhos que a ciência abre.',
   importance: 'Dar visibilidade ao impacto de projetos científicos na vida dos jovens.',
   relation: 'Relação entre participar de ciência, continuidade dos estudos e liderança.',
   contact: 'Instagram: @evoluaimpactoprojetos',
