@@ -1,16 +1,3 @@
 {
-  "reescreve": [
-    {
-      "fonte": "/api/(.*)",
-      "destino": {
-        "serviço": "backend"
-      }
-    },
-    {
-      "fonte": "/(.*)",
-      "destino": {
-        "serviço": "aplicativo"
-      }
-    }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
