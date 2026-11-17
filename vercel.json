@@ -1,14 +1,4 @@
 {
-  "serviços": {
-    "aplicativo": {
-      "raiz": ".",
-      "estrutura": "vite"
-    },
-    "backend": {
-      "raiz": "backend",
-      "estrutura": "expresso"
-    }
-  },
   "reescreve": [
     {
       "fonte": "/api/(.*)",
